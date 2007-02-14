@@ -1,0 +1,16 @@
+#!/usr/bin/perl -wT
+# implementation of naive Bayesian categorization
+# Author: Jaeho Shin <netj@sparcs.org>
+# Created: 2007-02-15
+
+# Usage: Supply size of each class as arguments, and for stdin,
+#        supply each feature's counts for every class as a single line.
+
+use strict;
+
+print join " ", map {rand} @ARGV; # dummy code
+
+# TODO: 0. convert counts to ratios
+# TODO: 1. leave significant ratios
+# TODO: 2. compute combined probabilities
+# TODO: 3. normalize each probability so the sum becomes 1

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# ClassMail -- try to guess the class of given message
+# Author: Jaeho Shin <netj@sparcs.org>
+# Created: 2007-02-14
+
+# read these from some config
+categories="spam ham lists reports"
+classmethod=naive-bayesian
+
+# TODO: parse options
+mode=list
+while getopts "t:h" o; do
+    case $o in
+        t) mode=test class=$OPTARG ;;
+        h) mode=tag  ;;
+    esac
+done
+shift $(($OPTIND - 1))
+# TODO: show usage
+
+# TODO setup PATH containing vocabs
+PATH=.:$PATH
+
+
+set $(
+    extract-text "$@" | tokenize |
+    counts lookup $categories |
+    class-$classmethod `counts lookup $categories <<<"#"`
+)
+for c in $categories; do
+    echo -e "$c\t$1"
+    shift
+done | sort -nrk 2 |
+case $mode in
+    list) # each category's probability
+    cat
+    ;;
+    test) # whether belongs to some category
+    [ "`head -1 | cut -f 1`" = $class ]
+    ;;
+    tag) # TODO add X-Category: header using formail
+    exit 1
+    ;;
+esac

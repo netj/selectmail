@@ -1,0 +1,29 @@
+#!/usr/bin/perl -wT
+
+use strict;
+use DB_File;
+
+my $action = {
+    lookup => sub {
+        my @dbs = map { tie my %db, 'DB_File', $_; \%db } @ARGV;
+        while (<STDIN>) {
+            chomp;
+            my $t = $_;
+            print join " ", map { exists $_->{$t} ? $_->{$t} : 0 } @dbs;
+            print "\n";
+        }
+    },
+    more => sub { die "Not implemented yet :("; },
+    less => sub { die "Not implemented yet :("; },
+}->{shift @ARGV};
+
+if (defined $action) {
+    $action->();
+} else {
+    print <<USAGE;
+$0 lookup <db> ...
+$0 more   <db> ...
+$0 less   <db> ...
+USAGE
+    exit 1;
+}
