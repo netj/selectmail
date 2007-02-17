@@ -3,14 +3,75 @@
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-15
 
-# Usage: Supply size of each class as arguments, and for stdin,
-#        supply each feature's counts for every class as a single line.
+# some parameters
+my $d_sig = 0.1;
+my $p_unknown = 1e-2;
+my $nrfeats = 20;
 
 use strict;
 
-print join " ", map {rand} @ARGV; # dummy code
+my @nrmsgs = map { $_ || 1 } @ARGV; @ARGV = ();
+my $n = @nrmsgs;
 
-# TODO: 0. convert counts to ratios
-# TODO: 1. leave significant ratios
-# TODO: 2. compute combined probabilities
-# TODO: 3. normalize each probability so the sum becomes 1
+unless ($n > 1) {
+    print <<EOF;
+Usage: Supply size of each class as arguments, and for stdin,
+       supply each feature's counts for every class as a single line.
+EOF
+    exit 1;
+}
+
+my $neutral = 1/$n;
+my @cats = 0 .. ($n - 1);
+my $d_max = 2*(1 - $neutral);
+
+my @rates_sig;
+my @ds;
+while (<>) {
+    my @counts = split /\s+/;
+    # convert counts to ratios of each feature
+    my @rates = map { $counts[$_]/$nrmsgs[$_] || $p_unknown } @cats;
+    # compute distance
+    my $d = 0;
+    $d += $_ foreach map { abs($_ - $neutral) } @rates;
+    $d /= $n;
+    # collect significant features
+    if ((my $d_ratio = $d / $d_max) >= $d_sig) {
+        push @rates_sig, \@rates;
+        push @ds, $d_ratio;
+    }
+}
+
+# limit the number of participating features
+@rates_sig = map { $rates_sig[$_] }
+            sort { $ds[$b] cmp $ds[$a] } (0 .. $#rates_sig);
+splice @rates_sig, min($nrfeats, $#rates_sig);
+
+# TODO: verbose output
+#print STDERR join("\t", map {sprintf "%6f", $_} @$_) . "\n" foreach @rates_sig;
+
+# compute combined probabilities of features
+my @prob = ratios(@nrmsgs);
+for my $rates (@rates_sig) {
+    $prob[$_] *= $$rates[$_] foreach @cats;
+}
+
+# normalize each probability so the sum becomes 1
+@prob = ratios(@prob);
+
+# output
+print join "\t", @prob;
+print "\n";
+
+
+
+# vocabularies
+
+sub min { my $m = shift; foreach (@_) { $m = $_ if $_ < $m; } $m }
+
+sub ratios {
+    my $total = 0;
+    $total += $_ foreach @_;
+    $total = 1 if $total == 0;
+    map { $_ / $total } @_
+}

@@ -3,42 +3,159 @@
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-14
 
-# read these from some config
-categories="spam ham lists reports"
-classmethod=naive-bayesian
+# some names of useful values
+Name=`basename "$0"`
+Base=`dirname "$0"`
+Base=`cd "$base" && pwd || echo "$base"`
+PATH="$base:$PATH"
 
-# TODO: parse options
-mode=list
-while getopts "t:h" o; do
-    case $o in
-        t) mode=test class=$OPTARG ;;
-        h) mode=tag  ;;
+# default values
+ConfigDir=${SELECTMAILDIR:-~/.selectmail}
+ClassMethod=naive-bayesian
+
+# vocabularies
+err() {
+    echo "$Name: $@" >&2
+}
+db_path() {
+    local c=
+    for c in "$@"; do
+        echo "'${ConfigDir//"'"/"'\\''"}/$c.db'"
+    done
+}
+need_tmp() {
+    trap 'c=$?; rm -f $tmp; exit $c' EXIT ERR HUP INT TERM
+    tmp=`mktemp /tmp/classmail.XXXXXX`
+}
+label() {
+    local labels=
+    labels=("$@")
+    set `cat`
+    local l=
+    for l in "${labels[@]}"; do
+        echo -e "$l\t$1"
+        shift
+    done
+}
+guess() {
+    tokenize | grep -v '^#$' | eval counts lookup `db_path $Categories` |
+    eval class-$ClassMethod `counts lookup $(db_path $Categories) <<<"\\#"` |
+    label $Categories | sort -rgk2
+}
+
+
+classmail() {
+    # parse options
+    local mode=list class=
+    while getopts "hilmt:" o; do
+        case $o in
+            h) mode=help                ;;
+            i) mode=stats               ;;
+            l) mode=tokens              ;;
+            t) mode=test class=$OPTARG  ;;
+            m) mode=mark                ;;
+        esac
+    done
+    shift $(($OPTIND - 1))
+
+    case $mode in
+        help) # show usage
+        cat <<-EOF
+	Usage: $Name         <some.msg
+	       $Name -m      <some.msg
+	       $Name -t spam <some.msg
+	       $Name -l      <some.msg
+	       $Name -i
+	       $Name -h
+	EOF
+        ;;
+        stats) # show statistics
+        hr() { echo "-------------------------------"; }
+        local fmt=" %-10s|%7d |%9d \n"
+        hr
+        printf    " %-10s|%7s |%9s \n" category nrmsg nrtok
+        hr
+        local c=
+        for c in $Categories; do
+            printf "$fmt" $c \
+                `echo -e "#\n\$" | eval counts lookup $(db_path $c)`
+        done
+        hr
+        ;;
+        tokens)
+        # TODO enumerate tokens
+        echo "Not implemented yet :(" >&2
+        exit 65
+        ;;
+        list) # each category's probability
+        cat "$@" | guess |
+        while read c p; do
+            printf "%-10s %9f\n" $c $p
+        done
+        ;;
+        test) # whether belongs to some category
+        [ "`cat "$@" | guess | head -1 | cut -f 1`" = "$class" ]
+        ;;
+        mark) # add X-Category: header
+        need_tmp
+        cat "$@" | tee $tmp | guess | {
+            local hdr=
+            while read c p; do
+                hdr="${hdr:+$hdr; }$c=$p"
+            done
+            formail -i "X-Category: $hdr" <$tmp
+        }
+        ;;
     esac
-done
-shift $(($OPTIND - 1))
-# TODO: show usage
-
-# TODO setup PATH containing vocabs
-PATH=.:$PATH
+}
 
 
-set $(
-    extract-text "$@" | tokenize |
-    counts lookup $categories |
-    class-$classmethod `counts lookup $categories <<<"#"`
-)
-for c in $categories; do
-    echo -e "$c\t$1"
-    shift
-done | sort -nrk 2 |
-case $mode in
-    list) # each category's probability
-    cat
-    ;;
-    test) # whether belongs to some category
-    [ "`head -1 | cut -f 1`" = $class ]
-    ;;
-    tag) # TODO add X-Category: header using formail
-    exit 1
-    ;;
-esac
+memorize() {
+    local mode=$1; shift
+    local c=$1; shift
+    if [ -n "$c" ] && grep -q "\<$c\>" <<<"$Categories"; then
+        need_tmp
+        tokenize "$@" | tee $tmp | eval counts $mode `db_path $c` &&
+        eval counts $mode -`wc -l $tmp` \
+            `db_path $c` <<<'$' # change in number of tokens
+    else
+        cat <<-EOF
+	Usage: $Name ham <good.msg
+	       $Name spam <bad.msg
+	EOF
+        exit 1
+    fi
+}
+learnmail()  { memorize more "$@"; }
+forgetmail() { memorize less "$@"; }
+
+
+studymail() {
+    local c=
+    for c in $Categories; do
+        echo -n "$c: studying..."
+        local memory="$ConfigDir/$c.memory/"
+        # TODO: extract new ones since timestamp from $mailboxes
+        #keepmail -o $tmp -r $timestamp `cat "$ConfigDir/$c.mailboxes"`
+        # TODO: learn them
+        #learnmail $c $memory
+        learnmail $c `cat "$ConfigDir/$c.mailboxes"`
+        # TODO: extract old ones from memory
+        # TODO: forget them
+        #forgetmail $c $memory
+        echo "done"
+    done
+}
+
+
+# read config
+. "$ConfigDir/config"
+Categories=`cd "$ConfigDir" && ls *.mailboxes | sed -e 's/.mailboxes$//'`
+
+# sanitize config
+if ! [ -x "$Base/class-$ClassMethod" ]; then
+    err "$ClassMethod: No such method available"
+    exit 2
+fi
+
+"$Name" "$@"

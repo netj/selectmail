@@ -1,17 +1,0 @@
-#!/bin/sh -e
-# Extract text from mail message(s)
-# Author: Jaeho Shin <netj@sparcs.org>
-# Created: 2007-02-14
-
-# Requires: mutt >= 1.4, screen
-
-tmp=`mktemp -d /tmp/extract-text.XXXXXX`
-trap "rm -rf $tmp" EXIT ERR TERM INT QUIT
-
-cat "$@" >$tmp/mbox
-screen -D -m \
-    mutt -e 'unignore *; set charset=utf-8' \
-         -e 'set pipe_decode; unset wait_key' \
-         -e 'push "T.;|cat >'$tmp/txt'x"' \
-         -f $tmp/mbox
-[ -f $tmp/txt ] && cat $tmp/txt

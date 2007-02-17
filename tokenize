@@ -1,62 +1,39 @@
-#!/usr/bin/perl -wT
-# Message tokenizer (works best with Mutt w/ pipe_decode)
+#!/usr/bin/env bash
+# Extract tokens from mail messages or mailboxes
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-14
 
-use 5.8.0;
-use strict;
+# Requires: mutt >= 1.4, screen
 
-our $URLchar = '[A-z0-9]';
-sub tokenize {
-    my @tokens;
-    # TODO improve tokenizing rule
-    for my $s (@_) {
-        while ($s =~ m#$URLchar+([-_.:@/?+=&\#]$URLchar*)+|\p{Letter}+#g) {
-            my $token = $&;
-            push @tokens, $token;
-            # sub-tokens in urls
-            while ($token =~ m#$URLchar+([-_\.]$URLchar*)+#g) {
-                push @tokens, $&;
-            }
-        }
-    }
-    @tokens
+sep='
+
+'
+
+base=`dirname "$0"`
+base=`cd "$base" && pwd || echo "$base"`
+tokenize1="'${base//"'"/"'\\''"}/tokenize1'"
+
+tmp=`mktemp -d /tmp/extract-text.XXXXXX`
+trap "rm -rf $tmp" EXIT ERR TERM INT QUIT
+#trap "echo $tmp" EXIT ERR TERM INT QUIT
+
+extract() {
+    local mbox=
+    for mbox in "$@"; do
+        screen -D -m \
+        mutt -e 'unignore ' \
+             -e 'set charset=utf-8' \
+             -e 'set pipe_decode; set pipe_sep="'"$sep"'"; unset wait_key' \
+             -e 'push "T!~G;|'"$tokenize1"' >>'$tmp/txt'x"' \
+             -f $mbox
+    done
 }
 
-sub emit {
-    foreach (@_) {
-        utf8::encode($_);
-        print $_ ;
-        print "\n";
-    }
-}
+if [ $# -gt 0 ]; then
+    extract "$@"
+else
+    formail >$tmp/mbox
+    extract $tmp/mbox
+fi
 
-
-
-# head
-my $name;
-my $content;
-while (<>) {
-    utf8::decode($_);
-    last if /^$/;
-    if (/^\s+(.*)$/) {
-        # continued
-        $content .= $1;
-    } elsif (/^([^:]+):\s*(.*)$/) {
-        # flush previous header if existed
-        if (defined $name) {
-            emit("$name:$_") foreach tokenize($content);
-        }
-        # start a new header
-        $name = lc $1;
-        $content = $2;
-    } else {
-        # malformed header line
-    }
-}
-
-# body
-while (<>) {
-    utf8::decode($_);
-    emit($_) foreach tokenize($_);
-}
+[ -f $tmp/txt ] && cat $tmp/txt
