@@ -5,9 +5,9 @@
 
 # some names of useful values
 Name=`basename "$0"`
-Base=`dirname "$0"`
-Base=`cd "$base" && pwd || echo "$base"`
-PATH="$base:$PATH"
+Base="`dirname "$0"`/$EXEDIR"
+Base=`cd "$Base" && pwd || echo "$Base"`
+PATH="$Base:$PATH"
 
 # default values
 ConfigDir=${SELECTMAILDIR:-~/.selectmail}
