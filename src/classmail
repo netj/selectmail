@@ -30,7 +30,7 @@ need_tmp() {
 label() {
     local labels=
     labels=("$@")
-    set `cat`
+    set `cat` ""
     local l=
     for l in "${labels[@]}"; do
         echo -e "$l\t$1"
