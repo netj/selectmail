@@ -147,10 +147,20 @@ studymail() {
     done
 }
 
+categories() {
+    (cd "$ConfigDir" && ls *.mailboxes 2>/dev/null | sed -e 's/.mailboxes$//')
+}
+# create default config if not exists
+[ -d "$ConfigDir" ] || mkdir -p "$ConfigDir" ||
+    { err "$ConfigDir: cannot prepare config directory"; exit 4; }
+[ -f "$ConfigDir" ] || touch "$ConfigDir/config" ||
+    { err "$ConfigDir: cannot prepare default config"; exit 4; }
+[ -n "`categories`" ] || touch "$ConfigDir"/{ham,spam}.mailboxes ||
+    { err "$ConfigDir: cannot prepare default categories"; }
 
 # read config
 . "$ConfigDir/config"
-Categories=`cd "$ConfigDir" && ls *.mailboxes | sed -e 's/.mailboxes$//'`
+Categories=`categories`
 
 # sanitize config
 if ! [ -x "$Base/class-$ClassMethod" ]; then

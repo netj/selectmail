@@ -28,6 +28,7 @@ $(EXEDIR)/%: $(SRC)/% $(EXEDIR)
 	install -m a=rx "$<" "$@"
 
 $(BINDIR)/classmail: $(SRC)/classmail $(BINDIR)
+	-chmod +w "$@"
 	sed -e 's#$$EXEDIR#'"$(EXEDIR:$(OBJ)/%=../%)"'#g' <"$<" >"$@"
 	chmod a=rx "$@"
 
