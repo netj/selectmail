@@ -1,12 +1,11 @@
 #!/usr/bin/perl -wT
-# implementation of naive Bayesian categorization
+# Perl implementation of naive Bayesian categorization
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-15
 
 # some parameters
-my $d_sig = 0.1;
-my $p_unknown = 1e-2;
-my $nrfeats = 20;
+my $d_sig = 0;
+my $nrfeats = 15;
 
 use strict;
 
@@ -24,13 +23,14 @@ EOF
 my $neutral = 1/$n;
 my @cats = 0 .. ($n - 1);
 my $d_max = 2*(1 - $neutral);
+my @p_unknown = map { 1/($_+1) } @nrmsgs;
 
 my @rates_sig;
 my @ds;
 while (<>) {
     my @counts = split /\s+/;
     # convert counts to ratios of each feature
-    my @rates = map { $counts[$_]/$nrmsgs[$_] || $p_unknown } @cats;
+    my @rates = map { $counts[$_]/$nrmsgs[$_] || $p_unknown[$_] } @cats;
     # compute distance
     my $d = 0;
     $d += $_ foreach map { abs($_ - $neutral) } @rates;
@@ -45,7 +45,7 @@ while (<>) {
 # limit the number of participating features
 @rates_sig = map { $rates_sig[$_] }
             sort { $ds[$b] cmp $ds[$a] } (0 .. $#rates_sig);
-splice @rates_sig, min($nrfeats, $#rates_sig);
+splice @rates_sig, $nrfeats if @rates_sig > $nrfeats;
 
 # TODO: verbose output
 #print STDERR join("\t", map {sprintf "%6f", $_} @$_) . "\n" foreach @rates_sig;

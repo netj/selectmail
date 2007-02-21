@@ -39,7 +39,7 @@ label() {
 }
 guess() {
     tokenize | grep -v '^#$' | eval counts lookup `db_path $Categories` |
-    eval class-$ClassMethod `counts lookup $(db_path $Categories) <<<"\\#"` |
+    class-$ClassMethod `eval counts lookup $(db_path $Categories) <<<'#'` |
     label $Categories | sort -rgk2
 }
 
@@ -90,7 +90,7 @@ classmail() {
         list) # each category's probability
         cat "$@" | guess |
         while read c p; do
-            printf "%-10s %9f\n" $c $p
+            printf "%-10s %.10e\n" $c $p
         done
         ;;
         test) # whether belongs to some category
