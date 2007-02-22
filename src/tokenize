@@ -15,17 +15,16 @@ tokenize1="'${base//"'"/"'\\''"}/tokenize1'"
 
 tmp=`mktemp -d /tmp/extract-text.XXXXXX`
 trap "rm -rf $tmp" EXIT ERR TERM INT QUIT
-#trap "echo $tmp" EXIT ERR TERM INT QUIT
 
 extract() {
     local mbox=
     for mbox in "$@"; do
         screen -D -m \
-        mutt -e 'unignore ' \
+        mutt -e 'unignore ; ignore date' \
              -e 'set charset=utf-8' \
              -e 'set pipe_decode; set pipe_sep="'"$sep"'"; unset wait_key' \
-             -e 'push "T!~G;|'"$tokenize1"' >>'$tmp/txt'x"' \
-             -f $mbox
+             -e 'push "<tag-pattern>!~G<Enter><tag-prefix>|'"$tokenize1"' >>'$tmp/txt'<Enter><exit>"' \
+             -R -z -f $mbox
     done
 }
 

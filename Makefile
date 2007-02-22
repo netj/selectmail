@@ -1,3 +1,5 @@
+VERSION=1.1 (2007-02-22)
+
 SRC=src
 OBJ?=obj
 TMP?=tmp
@@ -29,7 +31,9 @@ $(EXEDIR)/%: $(SRC)/% $(EXEDIR)
 
 $(BINDIR)/classmail: $(SRC)/classmail $(BINDIR)
 	-chmod +w "$@"
-	sed -e 's#$$EXEDIR#'"$(EXEDIR:$(OBJ)/%=../%)"'#g' <"$<" >"$@"
+	sed -e 's#$$EXEDIR#'"$(EXEDIR:$(OBJ)/%=../%)"'#g' \
+	    -e 's#$$VERSION#'"$(VERSION)"'#g' \
+	    <"$<" >"$@"
 	chmod a=rx "$@"
 
 $(BINDIR)/learnmail \

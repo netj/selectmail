@@ -3,6 +3,8 @@
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-14
 
+Header="SelectMail $VERSION"
+
 # some names of useful values
 Name=`basename "$0"`
 Base="`dirname "$0"`/$EXEDIR"
@@ -61,12 +63,22 @@ classmail() {
     case $mode in
         help) # show usage
         cat <<-EOF
-	Usage: $Name         <some.msg
-	       $Name -m      <some.msg
-	       $Name -t spam <some.msg
-	       $Name -l      <some.msg
-	       $Name -i
-	       $Name -h
+	$Header
+	usage:
+	  $Name <some.msg
+	    guess the message's probability for each class
+	  $Name -m <some.msg
+	    add X-Category header to the message
+	    (might be useful for procmail's :0f)
+	  $Name -t spam <some.msg
+	    test whether the given class is the most probable one
+	  $Name -l <some.msg
+	    list tokens that are being considered (not implemented)
+	  $Name -i
+	    show number of messages and tokens for each class
+	  $Name -h
+	    show this help message
+	
 	EOF
         ;;
         stats) # show statistics
@@ -120,7 +132,8 @@ memorize() {
             `db_path $c` <<<'$' # change in number of tokens
     else
         cat <<-EOF
-	Usage: $Name ham <good.msg
+	$Header
+	usage: $Name ham <good.msg
 	       $Name spam <bad.msg
 	EOF
         exit 1
@@ -146,6 +159,7 @@ studymail() {
         echo "done"
     done
 }
+
 
 categories() {
     (cd "$ConfigDir" && ls *.mailboxes 2>/dev/null | sed -e 's/.mailboxes$//')
