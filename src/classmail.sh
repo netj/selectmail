@@ -1,50 +1,15 @@
 #!/usr/bin/env bash
-# ClassMail -- try to guess the class of given message
+Id="SelectMail $VERSION" # (http://netj.org/selectmail)
+# ClassMail -- study and guess the class of given message
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-14
 
-Header="SelectMail $VERSION"
+# TODO: check dependencies, e.g. Mutt 1.5, ...
 
-# some names of useful values
-Name=`basename "$0"`
-Base="`dirname "$0"`/$EXEDIR"
-Base=`cd "$Base" && pwd || echo "$Base"`
-PATH="$Base:$PATH"
+. "`dirname "$0"`/$EXEDIR"/common
 
 # default values
 ConfigDir=${SELECTMAILDIR:-~/.selectmail}
-ClassMethod=naive-bayesian
-
-# vocabularies
-err() {
-    echo "$Name: $@" >&2
-}
-db_path() {
-    local c=
-    for c in "$@"; do
-        echo "'${ConfigDir//"'"/"'\\''"}/$c.db'"
-    done
-}
-need_tmp() {
-    trap 'c=$?; rm -f $tmp; exit $c' EXIT ERR HUP INT TERM
-    tmp=`mktemp /tmp/classmail.XXXXXX`
-}
-label() {
-    local labels=
-    labels=("$@")
-    set `cat` ""
-    local l=
-    for l in "${labels[@]}"; do
-        echo -e "$l\t$1"
-        shift
-    done
-}
-guess() {
-    tokenize | grep -v '^#$' | eval counts lookup `db_path $Categories` |
-    class-$ClassMethod `eval counts lookup $(db_path $Categories) <<<'#'` |
-    label $Categories | sort -rgk2
-}
-
 
 classmail() {
     # parse options
@@ -56,6 +21,7 @@ classmail() {
             l) mode=tokens              ;;
             t) mode=test class=$OPTARG  ;;
             m) mode=mark                ;;
+            *) see_usage                ;;
         esac
     done
     shift $(($OPTIND - 1))
@@ -63,7 +29,9 @@ classmail() {
     case $mode in
         help) # show usage
         cat <<-EOF
-	$Header
+	$Id
+	$Name -- guess the class of given message
+	
 	usage:
 	  $Name <some.msg
 	    guess the message's probability for each class
@@ -121,30 +89,27 @@ classmail() {
     esac
 }
 
-
-memorize() {
-    local mode=$1; shift
-    local c=$1; shift
-    if [ -n "$c" ] && grep -q "\<$c\>" <<<"$Categories"; then
-        need_tmp
-        tokenize "$@" | tee $tmp | eval counts $mode `db_path $c` &&
-        eval counts $mode -`wc -l $tmp` \
-            `db_path $c` <<<'$' # change in number of tokens
-    else
-        cat <<-EOF
-	$Header
-	usage: $Name ham <good.msg
-	       $Name spam <bad.msg
-	EOF
-        exit 1
-    fi
+guess() {
+    tokenize | grep -v '^#$' | eval counts lookup `db_path $Categories` |
+    class-$ClassMethod `eval counts lookup $(db_path $Categories) <<<'#'` |
+    label $Categories | sort -rgk2
 }
-learnmail()  { memorize more "$@"; }
-forgetmail() { memorize less "$@"; }
+
+label() {
+    local labels=
+    labels=("$@")
+    set `cat` ""
+    local l=
+    for l in "${labels[@]}"; do
+        echo -e "$l\t$1"
+        shift
+    done
+}
 
 
 studymail() {
     local c=
+    # TODO: usage
     for c in $Categories; do
         echo -n "$c: studying..."
         local memory="$ConfigDir/$c.memory/"
@@ -161,25 +126,57 @@ studymail() {
 }
 
 
+memorize() {
+    local mode=$1; shift
+    local c=$1; shift
+    if [ -n "$c" ] && grep -q "\<$c\>" <<<"$Categories"; then
+        need_tmp
+        tokenize "$@" | tee $tmp | eval counts $mode `db_path $c` &&
+        eval counts $mode -`wc -l $tmp` \
+            `db_path $c` <<<'$' # change in number of tokens
+    else
+        cat <<-EOF
+	$Id
+        $Name -- remember given messages as an example of some class
+	usage: $Name ham <good.msg
+	       $Name spam <bad.msg
+	EOF
+        exit 1
+    fi
+}
+learnmail()  { memorize more "$@"; }
+forgetmail() { memorize less "$@"; }
+
+
+load_config() {
+    # create default config if not exists
+    [ -d "$ConfigDir" ] || mkdir -p "$ConfigDir" ||
+        { err "$ConfigDir: cannot prepare config directory"; exit 4; }
+    [ -f "$ConfigDir/config" ] || cp -f "$Base/config" "$ConfigDir/" ||
+        { err "$ConfigDir: cannot prepare default config"; exit 4; }
+    [ -n "`categories`" ] || touch "$ConfigDir"/{ham,spam}.mailboxes ||
+        { err "$ConfigDir: cannot prepare default categories"; }
+
+    # read config
+    . "$ConfigDir/config"
+    Categories=`categories`
+
+    # sanitize config
+    if ! [ -x "$Base/class-$ClassMethod" ]; then
+        err "$ClassMethod: No such method available"
+        exit 2
+    fi
+}
+
 categories() {
     (cd "$ConfigDir" && ls *.mailboxes 2>/dev/null | sed -e 's/.mailboxes$//')
 }
-# create default config if not exists
-[ -d "$ConfigDir" ] || mkdir -p "$ConfigDir" ||
-    { err "$ConfigDir: cannot prepare config directory"; exit 4; }
-[ -f "$ConfigDir" ] || touch "$ConfigDir/config" ||
-    { err "$ConfigDir: cannot prepare default config"; exit 4; }
-[ -n "`categories`" ] || touch "$ConfigDir"/{ham,spam}.mailboxes ||
-    { err "$ConfigDir: cannot prepare default categories"; }
+db_path() {
+    local c=
+    for c in "$@"; do
+        echo "'${ConfigDir//"'"/"'\\''"}/$c.db'"
+    done
+}
 
-# read config
-. "$ConfigDir/config"
-Categories=`categories`
-
-# sanitize config
-if ! [ -x "$Base/class-$ClassMethod" ]; then
-    err "$ClassMethod: No such method available"
-    exit 2
-fi
-
+load_config
 "$Name" "$@"

@@ -1,0 +1,9 @@
+# SelectMail configuration
+
+# choose a classification method:
+#  naive-bayesian
+#  boosting
+#  bagging
+#  random-forest
+ClassMethod=naive-bayesian
+
