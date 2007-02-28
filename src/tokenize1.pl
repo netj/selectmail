@@ -36,40 +36,46 @@ sub emit {
         $token_history{$_}++;
     }
 }
+sub emit_all {
+    my $string = shift;
+    my $tag = shift || "";
+    emit("$tag$_") foreach eval { tokenize($string) };
+}
 
 
-
-while (<>) {
+my $line;
+do {
+    # begin of msg
     restart();
     # head
     my $name;
     my $content;
-    while (<>) {
-        utf8::decode($_);
-        last if /^$/;
-        if (/^\s+(.*)$/) {
+    while (defined ($line = <>)) {
+        chomp $line;
+        utf8::decode($line);
+        if ($line =~ /^\s+(.*)$/) {
             # continued
             $content .= $1;
-        } elsif (/^([^:]+):\s*(.*)$/) {
+        } elsif ($line =~ /^([^:]+):\s*(.*)$/) {
             # flush previous header if existed
-            if (defined $name) {
-                emit("$name:$_") foreach eval { tokenize($content) };
-            }
+            emit_all($content, "$name:") if defined $name;
             # start a new header
             $name = lc $1;
             $content = $2;
+        } elsif ($line =~ /^$/) {
+            # flush previous header if existed
+            emit_all($content, "$name:") if defined $name;
+            last;
         } else {
-            # malformed header line
+            warn "malformed header line";
         }
     }
-
     # body
-    while (<>) {
-        last if /^/;
-        utf8::decode($_);
-        emit($_) foreach eval { tokenize($_) };
+    while (defined ($line = <>)) {
+        last if $line =~ /^/;
+        utf8::decode($line);
+        emit_all($line);
     }
-
     # end of msg marker
     print "#\n";
-}
+} while (defined $line);
