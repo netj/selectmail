@@ -6,6 +6,9 @@
 use 5.8.0;
 use strict;
 
+our $PipeSep = '';
+our $MsgMarker = '#';
+
 our $URLchar = '[A-z0-9]';
 sub tokenize {
     my @tokens;
@@ -72,10 +75,12 @@ do {
     }
     # body
     while (defined ($line = <>)) {
-        last if $line =~ /^/;
+        if ($line =~ /^$PipeSep/) {
+            emit($MsgMarker);
+            last;
+        }
         utf8::decode($line);
         emit_all($line);
     }
     # end of msg marker
-    print "#\n";
 } while (defined $line);

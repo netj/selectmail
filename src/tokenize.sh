@@ -20,7 +20,8 @@ extract() {
     local mbox=
     for mbox in "$@"; do
         screen -D -m \
-        mutt -e 'unignore ; ignore date' \
+        mutt -e 'unignore from: to cc subject mailing-list list-id' \
+             -e 'ignore date' \
              -e 'set charset=utf-8' \
              -e 'set pipe_decode; set pipe_sep="'"$sep"'"; unset wait_key' \
              -e 'push "<tag-pattern>!~G<Enter><tag-prefix>|'"$tokenize1"' >>'$tmp/txt'<Enter><exit>"' \
