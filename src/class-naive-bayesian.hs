@@ -15,8 +15,8 @@ main = do
     let counts = map (map toRational) allCounts
     -- convert to ratios
     let classSize = normalize msgs
-    let null = 1 / foldl1 min msgs
-    let features = map (map (max null) . overMsgs) counts
+    let r_min = 1 / foldl1 max msgs
+    let features = map (map (max r_min) . overMsgs) counts
           where overMsgs cs = zipWith (/) cs msgs
     -- compute combined probabilities
     let probUnscaled = foldl1 (zipWith (*)) features
