@@ -37,6 +37,13 @@ $(BINDIR)/% $(EXEDIR)/%: $(SRC)/%
 	mkdir -p "`dirname "$@"`"
 	install -m a=rx "$<" "$@"
 
+$(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.hs $(TMP)/
+	ghc -Wall -O2 -hidir "$(TMP)" -odir "$(TMP)" -o "$@" "$<"
+
+$(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.pl
+	mkdir -p "`dirname "$@"`"
+	install -m 555 "$<" "$@"
+
 $(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.sh
 	mkdir -p "`dirname "$@"`"
 	-chmod +w "$@"
@@ -45,16 +52,9 @@ $(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.sh
 	    <"$<" >"$@"
 	chmod a=rx "$@"
 
-$(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.pl
-	mkdir -p "`dirname "$@"`"
-	install -m 555 "$<" "$@"
-
 $(DATADIR)/%: $(SRC)/%
 	mkdir -p "`dirname "$@"`"
 	install -m 444 "$<" "$@"
-
-$(BINDIR)/% $(EXEDIR)/%: $(SRC)/%.hs $(TMP)/
-	ghc -Wall -O2 -hidir "$(TMP)" -odir "$(TMP)" -o "$@" "$<"
 
 
 # specific rules
