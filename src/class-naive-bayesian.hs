@@ -15,13 +15,14 @@ main = do
     let counts = map (map toRational) allCounts
     -- convert to ratios
     let classSize = normalize msgs
-    let features = map (overMsgs . map (max 1)) counts
+    let null = 1 / foldl1 min msgs
+    let features = map (map (max null) . overMsgs) counts
           where overMsgs cs = zipWith (/) cs msgs
     -- compute combined probabilities
     let probUnscaled = foldl1 (zipWith (*)) features
     let prob = normalize $ zipWith (*) probUnscaled classSize
     -- output
-    sequence $ map (print.fromRational) prob
+    sequence $ map (print . fromRational) prob
 
 
 input :: IO ([Integer], [[Integer]])
