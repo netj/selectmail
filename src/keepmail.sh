@@ -63,7 +63,7 @@ keepmail() {
                         local from=$1 y= o=
                         for y in $(seq `date +%Y` -1 1900); do
                             o=`sed <<<"$output" -e "s/%Y/$y/g"`
-                            echo -n "spreading '~d 01/01/$y-' to $o"
+                            echo -n " storing '~d 01/01/$y-' to $o"
                             mvmsgs "~d 01/01/$y-" "$o" "$from"
                             echo
                             [ -s "$from" ] || break
@@ -75,7 +75,7 @@ keepmail() {
                             for m in $(seq $m0 -1 1); do
                                 m=`printf %02d $m`
                                 o=`sed <<<"$output" -e "s/%Y/$y/g" -e "s/%m/$m/g"`
-                                echo -n "spreading '~d 01/$m/$y-' to $o"
+                                echo -n " storing '~d 01/$m/$y-' to $o"
                                 mvmsgs "~d 01/$m/$y-" "$o" "$from"
                                 echo
                                 [ -s "$from" ] || break
@@ -98,6 +98,7 @@ keepmail() {
                     mvmsgs "!($patt)" "$tmp" "$@"
                     echo
                     # spread
+                    echo "spreading messages to $output"
                     spread "$tmp"
                     # clean up
                     [ -s "$tmp" ] || rm -f "$tmp"
