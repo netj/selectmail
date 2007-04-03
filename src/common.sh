@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # vocabularies
 
 Name=`basename "$0"`
@@ -6,7 +7,9 @@ Base=`cd "$Base" && pwd || echo "$Base"`
 PATH="$Base:$PATH"
 
 err() {
+    local c=$?
     echo "$Name: $@" >&2
+    return $c
 }
 
 see_usage() {
@@ -19,5 +22,5 @@ see_usage() {
 
 need_tmp() {
     trap 'c=$?; rm -f $tmp; exit $c' EXIT ERR HUP INT TERM
-    tmp=`mktemp /tmp/classmail.XXXXXX`
+    tmp=`mktemp /tmp/selectmail.XXXXXX`
 }

@@ -1,4 +1,4 @@
-VERSION=1.1 (2007-02-22)
+VERSION=1.2 (2007-04-03)
 
 SRC=src
 OBJ?=obj
