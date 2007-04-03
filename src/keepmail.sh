@@ -4,6 +4,7 @@ Id="SelectMail $VERSION" # (http://netj.org/selectmail)
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-24
 
+set -e
 . "`dirname "$0"`/$EXEDIR"/common
 
 keepmail() {
@@ -20,8 +21,6 @@ keepmail() {
         esac
     done
     shift $(($OPTIND - 1))
-
-    set -e
     case "$mode" in
         help) # show usage
         cat <<-EOF
@@ -86,7 +85,7 @@ keepmail() {
                         done
                     } ;;
                     *)
-                    err "spread $spread not implemented :("
+                    err "spread-$spread not implemented :("
                     return 4
                     ;;
                 esac
@@ -150,6 +149,7 @@ mvmsgs() {
     local opt=
     case "$to" in
         *.gz|*.bz2) # compressed folders
+        env_provides compressed_folders
         # XXX: compressed folders need mbox_type=mbox (2007-03)
         opt="set mbox_type=mbox"
         ;;
@@ -170,4 +170,5 @@ mvmsgs() {
     rm -f "$tmp"
 }
 
+env_provides mutt
 "$Name" "$@"

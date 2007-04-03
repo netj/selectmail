@@ -4,8 +4,7 @@ Id="SelectMail $VERSION" # (http://netj.org/selectmail)
 # Author: Jaeho Shin <netj@sparcs.org>
 # Created: 2007-02-14
 
-# TODO: check dependencies, e.g. Mutt 1.5, ...
-
+set -e
 . "`dirname "$0"`/$EXEDIR"/common
 
 # default values
@@ -25,7 +24,6 @@ classmail() {
         esac
     done
     shift $(($OPTIND - 1))
-
     case $mode in
         help) # show usage
         cat <<-EOF
@@ -178,5 +176,6 @@ db_path() {
     done
 }
 
+env_provides mutt
 load_config
 "$Name" "$@"
