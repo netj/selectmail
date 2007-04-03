@@ -90,7 +90,8 @@ keepmail() {
                     ;;
                 esac
                 keep() {
-                    local tmp=`mktemp "$1.keepmail.XXXXXX"`
+                    local pfx=$1; pfx=${pfx#=}; pfx=${pfx#+}; pfx=${pfx#!}
+                    local tmp=`mktemp "$pfx.keepmail.XXXXXX"`
                     [ -n "$tmp" ] || return 8
                     # extract to $tmp first
                     echo -n "extracting '!($patt)' from $@"
