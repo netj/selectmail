@@ -61,7 +61,7 @@ keepmail() {
                 case "$spread" in
                     yearly) spread() {
                         local from=$1 y= o=
-                        for y in $(seq `date +%Y` -1 1900); do
+                        for y in $(seq `date +%Y` -1 1970); do
                             o=`sed <<<"$output" -e "s/%Y/$y/g"`
                             echo -n " storing '~d 01/01/$y-' to $o"
                             mvmsgs "~d 01/01/$y-" "$o" "$from"
@@ -71,7 +71,7 @@ keepmail() {
                     } ;;
                     monthly) spread() {
                         local from=$1 y= m= m0=`date +%m` o=
-                        for y in $(seq `date +%Y` -1 1900); do
+                        for y in $(seq `date +%Y` -1 1970); do
                             for m in $(seq $m0 -1 1); do
                                 m=`printf %02d $m`
                                 o=`sed <<<"$output" -e "s/%Y/$y/g" -e "s/%m/$m/g"`
